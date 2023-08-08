@@ -1,8 +1,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
 
-#include "socket.h"
 #include "raft.h"
 #include "def.h"
 #include "log.h"
@@ -26,24 +27,13 @@ int main(int argc, char* argv[]) {
         sprintf(path, "log/%s", argv[1]);
         open(path, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 
-        raft::raft_rpc_init(id);
+        raft::raft_init(id);
 
-        mysock::MSG msg;
-        int r = mysock::recv(&msg); 
-        if (r > 0) {
-                raft::MSG_RAFT *msgr = (raft::MSG_RAFT*) msg.data;
-                raft::raft_response_write(*msgr, msg.from);
+        if (raft::role == raft::Role::Leader) {
+                raft::raft_being_leader();
+        } else {
+                raft::raft_being_follower();
         }
-        // INFO("boardcasting greeting\n");
-        // mysock::boardcast(greeting, sizeof(greeting));
-        // mysock::MSG msg_rcv;
-        // while (recv(&msg_rcv) >= 0) {
-        //         INFO("receiving from %d: %s\n", msg_rcv.from, msg_rcv.data);
-        //         if (__builtin_strcmp(msg_rcv.data, greeting) == 0) {
-        //                 mysock::send(msg_rcv.from, response, sizeof(response));
-        //         }
-        // }
-        // INFO("timeout, exiting\n");
 
         INFO("shutting down\n");
         raft::raft_rpc_shutdown();

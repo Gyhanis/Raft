@@ -1,3 +1,6 @@
+#pragma once
+#include "raft_entry.h"
+
 namespace raft {
         enum MSG_TYPE {
                 RequestWrite = 0x001,
@@ -47,8 +50,4 @@ namespace raft {
                         } vresp;
                 };
         };
-
-        int raft_rpc_init(int id);
-        int raft_response_write(const MSG_RAFT& msg, int client);
-        int raft_rpc_shutdown();
 }
