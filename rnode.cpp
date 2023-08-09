@@ -26,17 +26,7 @@ int main(int argc, char* argv[]) {
         close(2);
         sprintf(path, "log/%s", argv[1]);
         open(path, O_CREAT|O_TRUNC|O_WRONLY, 0666);
-
-        raft::raft_init(id);
-
-        if (raft::role == raft::Role::Leader) {
-                raft::raft_being_leader();
-        } else {
-                raft::raft_being_follower();
-        }
-
-        INFO("shutting down\n");
-        raft::raft_rpc_shutdown();
+        raft::raft_loop(id);
         return 0;
 }
 

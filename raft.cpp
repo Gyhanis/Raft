@@ -14,20 +14,60 @@ bool operator<(const timespec& ts1, const timespec& ts2) {
 }
 
 namespace raft {
+        int counter = 0;
+
         int node_id;
         int currentTerm = 0;
-        int leader = 0;
+        int leader = -1;
+        int votedFor = -1;
         Role role = Role::Follower; 
 
         EntryList list;
 
+        timespec timer;
+        bool timer_timeout() {
+                timespec now;
+                clock_gettime(CLOCK_MONOTONIC, &now);
+                return timer < now;
+        }
+
         int raft_init(int id) {
                 node_id = id;
-                WARNING("Hard coded id 0 to be leader\n");
-                if (id == 0) {
-                        role = Role::Leader;
-                } 
+                // WARNING("Hard coded id 0 to be leader\n");
+                // if (id == 0) {
+                //         role = Role::Leader;
+                // } 
+                timespec ts;
+                clock_gettime(CLOCK_MONOTONIC, &ts);
+                srand(ts.tv_nsec);
+                pending_msg.type = NullMsg;
                 list.init();
                 return raft_rpc_init(id);
+        }
+
+        int raft_loop(int id) {
+                raft_init(id);
+                while (role != Role::Dead) {
+                        switch (role) {
+                        case Role::Leader:
+                                WARNING("========= Transferred into Leader State ========\n");
+                                raft_being_leader();
+                                break;
+                        case Role::Follower:
+                                WARNING("========= Transferred into Follower State ======\n");
+                                raft_being_follower();
+                                break;
+                        case Role::Candidate:
+                                WARNING("========= Transferred into Candidate State =====\n");
+                                raft_being_candidate();
+                                break;
+                        default:
+                                ERROR("Am I dead?\n");
+                                role = Role::Dead;
+                                break;
+                        }
+                }
+                raft_rpc_shutdown();
+                return 0;
         }
 }

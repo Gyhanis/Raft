@@ -25,7 +25,7 @@ int main() {
         raft_client::raft_init_client(-1);
         for (int i = 1; i <= 5; i++) {
                 sleep(2);
-                raft_client::raft_request_write(i,2*i);
+                raft_client::raft_request_write(i,2*i,10);
         }
         raft_client::raft_client_close();
         return 0;

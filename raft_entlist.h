@@ -13,11 +13,19 @@ namespace raft {
                 int proceeded[NODE_CNT];
 
                 bool is_full();
-                int get_commitIndex();
-                Entry& index(int index);
-                Entry& last();
         public:
+                inline Entry& last() {
+                        return list[lastIndex%ENTRY_LIST_LEN];
+                }
+
+                inline Entry& index(int index) {
+                        return list[index%ENTRY_LIST_LEN];
+                }
+
                 int init();
+                int reset_preceeded();
+                bool check_last_entry(int _index, int term);
+                bool should_vote(int _index, int term);
                 int append_entry(int key, int value);
                 int fill_append_entries(MSG_RAFT& msgr, int to);
                 int update_entry(const Entry& e);

@@ -3,10 +3,11 @@
 
 namespace raft {
         enum MSG_TYPE {
-                RequestWrite = 0x001,
+                NullMsg         = 0x000,
+                RequestWrite    = 0x001,
                 ResponseWrite,
 
-                RequestVote = 0x101, 
+                RequestVote     = 0x101, 
                 RequestVoteRsp,
                 AppendEntries,
                 AppendEntriesRsp,
@@ -16,10 +17,13 @@ namespace raft {
                 MSG_TYPE type;
                 union {
                         struct {
+                                int cid;
+                                int rid;
                                 int key;
                                 int value;
                         } wrqst;
                         struct {
+                                int rid;
                                 int written;
                                 int leader;
                         } wresp;

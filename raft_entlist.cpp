@@ -5,19 +5,37 @@ namespace raft {
                 return lastIndex - lastApplied >= ENTRY_LIST_LEN;
         }
 
-        inline Entry& EntryList::last() {
-                return list[lastIndex%ENTRY_LIST_LEN];
-        }
-
-        inline Entry& EntryList::index(int index) {
-                return list[index%ENTRY_LIST_LEN];
-        }
-
         int EntryList::init() {
                 for (int i = 0; i < NODE_CNT; i++) {
                         proceeded[i] = 0;
                 }
                 return 0;
+        }
+
+        int EntryList::reset_preceeded() {
+                for (int i = 0; i < NODE_CNT; i++) {
+                        proceeded[i] = commitIndex;
+                }
+                return 0;
+        }
+
+        bool EntryList::check_last_entry(int _index, int term) {
+                if (_index > lastIndex) {
+                        return false;
+                }
+                if (index(_index).term != term) {
+                        return false;
+                }
+                return true;
+        }
+
+        bool EntryList::should_vote(int _index, int term) {
+                if (term > last().term) {
+                        return true;
+                } else if (term == last().term && _index >= last().index) {
+                        return true;
+                } 
+                return false;
         }
 
         int EntryList::append_entry(int key, int value) {

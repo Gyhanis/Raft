@@ -101,7 +101,7 @@ namespace mysock {
                 int r = read(sock, msg, sizeof(*msg));
                 DEBUG("read finished with %d\n", r);
                 if (r < 0) {
-                        WARNING("recv: %s\n", strerror(errno));
+                        DEBUG("recv: %s\n", strerror(errno));
                 } else if (msg->to != socket_id) {
                         WARNING("recv: msg not for me?\n");
                         return -1;
@@ -111,8 +111,9 @@ namespace mysock {
         }
 
         int release_socket() {
+                DEBUG("Releasing socket\n");
                 close(sock);
-                INFO("unlinking %s(%d)\n", addrs_un[socket_id].sun_path, socket_id);
+                // INFO("unlinking %s(%d)\n", addrs_un[socket_id].sun_path, socket_id);
                 unlink(addrs_un[socket_id].sun_path);
                 return 0;
         }

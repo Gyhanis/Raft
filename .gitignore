@@ -1,0 +1,5 @@
+*.o 
+rnode 
+launcher
+log/*
+socket_file/*
