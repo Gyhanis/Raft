@@ -1,5 +1,6 @@
 #include "socket.h"
 #include "raft.h"
+#include <errno.h>
 
 namespace raft {
         int vote_cnt = 0;
@@ -107,7 +108,10 @@ namespace raft {
                         mysock::MSG msg;
                         MSG_RAFT *msgr = (MSG_RAFT*) msg.data;
                         int r = mysock::recv(&msg);
-                        if (r > 0) {
+                        if (r < 0) {
+                                if (errno != EAGAIN)
+                                        INFO("recv failed: %s\n", strerror(errno));
+                        } else {
                                 switch (msgr->type) {
                                 case MSG_TYPE::RequestWrite:
                                         INFO("Request write received from %d\n", msg.from);

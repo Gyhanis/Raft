@@ -7,12 +7,12 @@
 
 namespace mysock {
         const struct sockaddr_un _addrs_un[] = {
-                {AF_LOCAL, "/home/void/raft/socket_file/c1"},
-                {AF_LOCAL, "/home/void/raft/socket_file/0"},
-                {AF_LOCAL, "/home/void/raft/socket_file/1"},
-                {AF_LOCAL, "/home/void/raft/socket_file/2"},
-                {AF_LOCAL, "/home/void/raft/socket_file/3"},
-                {AF_LOCAL, "/home/void/raft/socket_file/4"},
+                {AF_LOCAL, "./socket_file/c1"},
+                {AF_LOCAL, "./socket_file/0"},
+                {AF_LOCAL, "./socket_file/1"},
+                {AF_LOCAL, "./socket_file/2"},
+                {AF_LOCAL, "./socket_file/3"},
+                {AF_LOCAL, "./socket_file/4"},
         };
         const struct sockaddr_un* addrs_un = &_addrs_un[1];
         #define ADDR_SIZE       sizeof(addrs_un[0])

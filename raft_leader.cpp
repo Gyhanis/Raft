@@ -115,7 +115,8 @@ namespace raft {
                         }
                         int r = mysock::recv(&msg);
                         if (r < 0) {
-                                INFO("recv failed: %s\n", strerror(errno));
+                                if (errno != EAGAIN)
+                                        INFO("recv failed: %s\n", strerror(errno));
                         } else {
                                 switch (msgr->type) {
                                 case MSG_TYPE::RequestWrite:

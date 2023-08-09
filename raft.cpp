@@ -67,6 +67,7 @@ namespace raft {
                                 break;
                         }
                 }
+                WARNING("Times up, shutting down\n");
                 raft_rpc_shutdown();
                 return 0;
         }
