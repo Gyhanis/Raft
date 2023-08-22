@@ -12,7 +12,7 @@
 
 #define NODE_MAJOR              ((NODE_CNT+1)/2)
 
-#define DEAD_CNT                50
+#define DEAD_CNT                100
 
 bool operator<(const timespec& ts1, const timespec& ts2);
 
@@ -21,7 +21,7 @@ namespace raft {
         extern int counter;
 
         enum Role {
-                Follower, Candidate, Leader, Dead
+                Follower, Candidate, Leader, Dead, Restart
         };
 
         extern int node_id;
@@ -42,6 +42,7 @@ namespace raft {
         int raft_rpc_shutdown();
 
         int raft_init(int id);
+        int raft_restart(int sec);
         int raft_being_leader();
         int raft_being_follower();
         int raft_being_candidate();

@@ -78,7 +78,7 @@ namespace raft {
 
         int raft_candidate_append_response(const MSG_RAFT& msg) {
                 if (msg.append.term >= currentTerm) {
-                        role == Role::Follower;
+                        role = Role::Follower;
                         leader = msg.append.id;
                         pending_msg = msg;
                 } else {

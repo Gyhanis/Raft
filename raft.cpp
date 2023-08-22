@@ -33,10 +33,8 @@ namespace raft {
 
         int raft_init(int id) {
                 node_id = id;
-                // WARNING("Hard coded id 0 to be leader\n");
-                // if (id == 0) {
-                //         role = Role::Leader;
-                // } 
+                role = Role::Follower;
+                currentTerm = 0;
                 timespec ts;
                 clock_gettime(CLOCK_MONOTONIC, &ts);
                 srand(ts.tv_nsec);
@@ -60,6 +58,9 @@ namespace raft {
                         case Role::Candidate:
                                 WARNING("========= Transferred into Candidate State =====\n");
                                 raft_being_candidate();
+                                break;
+                        case Role::Restart:
+                                raft_restart(5);
                                 break;
                         default:
                                 ERROR("Am I dead?\n");

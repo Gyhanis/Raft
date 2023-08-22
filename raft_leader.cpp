@@ -49,9 +49,13 @@ namespace raft {
         int raft_leader_handle_append_response(const MSG_RAFT& msg) {
                 if (msg.apresp.success >= 0) {
                         list.leader_commit(msg.apresp.id, msg.apresp.success);
+                } else if (msg.apresp.term > currentTerm) {
+                        currentTerm = msg.apresp.term;
+                        leader = -1;
+                        role = Role::Follower;
                 } else {
-                        //TODO
-                        ERROR("append failed\n");
+                        list.rollback(msg.apresp.id);
+                        // ERROR("append failed\n");
                 }
 
                 return 0;
@@ -61,6 +65,7 @@ namespace raft {
                 if (msg.append.term > currentTerm) {
                         currentTerm = msg.append.term;
                         leader = msg.append.id;
+                        pending_msg = msg;
                         role = Role::Follower;
                 } else if (msg.append.term == currentTerm) {
                         ERROR("Another leader ?\n");
@@ -109,10 +114,15 @@ namespace raft {
                         sleep(1);
                 set_heartbeat_timer();
                 while (role == Role::Leader) {
-                        if (counter++ > DEAD_CNT) {
+                        if (counter > DEAD_CNT) {
                                 role = Role::Dead;
                                 break;
+                        } 
+                        if (counter == 30) {
+                                role = Role::Restart;
+                                break;
                         }
+                        counter++;
                         int r = mysock::recv(&msg);
                         if (r < 0) {
                                 if (errno != EAGAIN)
