@@ -1,7 +1,7 @@
 #include <errno.h>
 
 #include "socket.h"
-#include "raft_rpc_client.h"
+#include "raft_client.h"
 #include "def.h"
 #include "log.h"
 
@@ -34,7 +34,7 @@ namespace raft_client {
                                 return -1;
                         }
                         if (msgr->type != raft_client::MSG_TYPE::ResponseWrite) {
-                                ERROR("Not a response?\n");
+                                ERROR("Wrong response?\n");
                                 return -2;
                         }
                 } while (msgr->wresp.rid != request_id);
@@ -75,6 +75,48 @@ namespace raft_client {
                         }
                 }
                 return r;
+        }
+
+        int raft_restart(int id, int sec) {
+                mysock::MSG msg;
+                raft_client::MSG_RAFT* msgr = (raft_client::MSG_RAFT*) msg.data;
+                msgr->type = RequestRestart;
+                msgr->restart.cid = client_id;
+                msgr->restart.rid = request_id;
+                msgr->restart.sec = sec;
+                int r = mysock::send(id, msgr, sizeof(*msgr));
+                if (r < 0) {
+                        return -1;
+                }
+                
+                do {
+                        r = recv(&msg);
+                        if (r < 0) {
+                                WARNING("Error on receiving response: %s\n", strerror(errno));
+                                return -1;
+                        }
+                        if (msgr->type != raft_client::MSG_TYPE::ResponseRestart) {
+                                ERROR("Wrong response?\n");
+                                return -2;
+                        }
+                } while (msgr->restart_resp.rid != request_id);
+
+                if (msgr->restart_resp.success == 0) {
+                        ERROR("Restart failed\n");
+                        return -3;
+                } 
+
+                request_id++;
+                if (sec >= 0) {
+                        INFO("Node restarted\n");
+                } else {
+                        WARNING("Node shutted down\n");
+                }
+                return 0;
+        }
+
+        int raft_shutdown(int id) {
+                return raft_restart(id, -1);
         }
 
         int raft_client_close() {

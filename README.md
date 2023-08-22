@@ -17,7 +17,7 @@ This is a simple implementation of raft for study. Each server node and client i
 
 4. Logs of nodes can be found in _log_ directory, and the logs of launcher is in stderr.
 
-5. The nodes are expected to stop within a few minutes. If they don't, use the following command to kill them.
+5. ~~The nodes are expected to stop within a few minutes. If they don't,~~ use the following command to kill them.
 
         pkill rnode
 

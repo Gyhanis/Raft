@@ -14,6 +14,20 @@ namespace raft {
                 return r;
         }
 
+        int raft_rpc_restart(const MSG_RAFT& msg) {
+                MSG_RAFT msgr;
+                msgr.type = MSG_TYPE::ResponseRestart;
+                msgr.restart_resp.rid = msg.restart.rid;
+                msgr.restart_resp.success = 1;
+                if (msg.restart.sec == -1) {
+                        role = Role::Dead;
+                } else {
+                        role = Role::Restart;
+                        countdown = msg.restart.sec;
+                }
+                return mysock::send(msg.restart.cid, &msgr, sizeof(msgr));
+        }
+
         int raft_rpc_shutdown() {
                 return mysock::release_socket();
         }

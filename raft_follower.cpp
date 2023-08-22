@@ -127,6 +127,10 @@ namespace raft {
                                         INFO("Request vote received from %d\n", msg.from);
                                         raft_follower_vote_response(*msgr);
                                         break;
+                                case MSG_TYPE::RequestRestart:
+                                        WARNING("Restart reqeust received\n");
+                                        raft_rpc_restart(*msgr);
+                                        break;
                                 case MSG_TYPE::NullMsg:
                                 case MSG_TYPE::RequestVoteRsp:
                                 case MSG_TYPE::AppendEntriesRsp:

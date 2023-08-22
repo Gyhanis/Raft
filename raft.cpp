@@ -60,7 +60,7 @@ namespace raft {
                                 raft_being_candidate();
                                 break;
                         case Role::Restart:
-                                raft_restart(5);
+                                raft_restart();
                                 break;
                         default:
                                 ERROR("Am I dead?\n");
@@ -68,7 +68,7 @@ namespace raft {
                                 break;
                         }
                 }
-                WARNING("Times up, shutting down\n");
+                WARNING("Shutting down\n");
                 raft_rpc_shutdown();
                 return 0;
         }

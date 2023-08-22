@@ -4,17 +4,12 @@
 #include <time.h>
 
 #include "def.h"
-#include "raft_rpc_client.h"
+#include "raft_client.h"
 
 int sock;
 
 int main() {
         char arg[16];
-        // timespec ts;
-        // clock_gettime(CLOCK_MONOTONIC, &ts);
-        // printf("%ld.%09ld\n", ts.tv_sec, ts.tv_nsec);
-        // long i = clock();
-        // printf("%ld\n", i);
         for (int i = 0; i < NODE_CNT; i++) {
                 sprintf(arg, "%d", i);
                 int pid = fork();
@@ -27,6 +22,7 @@ int main() {
                 sleep(2);
                 raft_client::raft_request_write(i,2*i,10);
         }
+        raft_client::raft_client_cli_loop();
         raft_client::raft_client_close();
         return 0;
 }

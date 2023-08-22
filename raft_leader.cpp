@@ -54,8 +54,8 @@ namespace raft {
                         leader = -1;
                         role = Role::Follower;
                 } else {
-                        list.rollback(msg.apresp.id);
-                        // ERROR("append failed\n");
+                        // list.rollback(msg.apresp.id);
+                        ERROR("append failed\n");
                 }
 
                 return 0;
@@ -118,10 +118,6 @@ namespace raft {
                                 role = Role::Dead;
                                 break;
                         } 
-                        if (counter == 30) {
-                                role = Role::Restart;
-                                break;
-                        }
                         counter++;
                         int r = mysock::recv(&msg);
                         if (r < 0) {
@@ -144,6 +140,10 @@ namespace raft {
                                 case MSG_TYPE::RequestVote:
                                         INFO("Request vote received from %d\n", msg.from);
                                         raft_leader_vote_response(*msgr);
+                                        break;
+                                case MSG_TYPE::RequestRestart:
+                                        WARNING("Restart reqeust received\n");
+                                        raft_rpc_restart(*msgr);
                                         break;
                                 case MSG_TYPE::NullMsg:
                                 case MSG_TYPE::RequestVoteRsp:

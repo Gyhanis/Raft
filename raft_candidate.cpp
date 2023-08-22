@@ -129,6 +129,10 @@ namespace raft {
                                         INFO("Append entry received from %d\n", msg.from);
                                         raft_candidate_append_response(*msgr);
                                         break;
+                                case MSG_TYPE::RequestRestart:
+                                        WARNING("Restart reqeust received\n");
+                                        raft_rpc_restart(*msgr);
+                                        break;
                                 case MSG_TYPE::NullMsg:
                                 case MSG_TYPE::AppendEntriesRsp:
                                         break;

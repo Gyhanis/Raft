@@ -30,19 +30,20 @@ namespace raft {
         extern int votedFor;
         extern Role role; 
 
-
         extern EntryList list;
 
         extern MSG_RAFT pending_msg;
 
         extern timespec timer;
         bool timer_timeout();
+        extern int countdown;
 
         int raft_rpc_init(int id);
         int raft_rpc_shutdown();
+        int raft_rpc_restart(const MSG_RAFT& msg);
 
         int raft_init(int id);
-        int raft_restart(int sec);
+        int raft_restart();
         int raft_being_leader();
         int raft_being_follower();
         int raft_being_candidate();

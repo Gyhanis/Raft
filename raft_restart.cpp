@@ -5,13 +5,14 @@
 namespace raft {
         int countdown;
 
-        int raft_restart(int sec) {
+        int raft_restart() {
                 ERROR("Restarting Node\n");
                 raft_rpc_shutdown();
 
-                for (int cd = sec; cd > 0; cd--) {
-                        WARNING("Restart in %d\n", cd);
+                while(countdown > 0) {
+                        WARNING("Restart in %d\n", countdown);
                         sleep(1);
+                        countdown--;
                 }
                 raft_init(node_id);
                 return 0;
