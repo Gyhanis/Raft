@@ -114,11 +114,11 @@ namespace raft {
                         sleep(1);
                 set_heartbeat_timer();
                 while (role == Role::Leader) {
-                        if (counter > DEAD_CNT) {
-                                role = Role::Dead;
-                                break;
-                        } 
-                        counter++;
+                        // if (counter > DEAD_CNT) {
+                        //         role = Role::Dead;
+                        //         break;
+                        // } 
+                        // counter++;
                         int r = mysock::recv(&msg);
                         if (r < 0) {
                                 if (errno != EAGAIN)

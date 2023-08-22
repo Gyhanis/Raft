@@ -104,10 +104,10 @@ namespace raft {
                 follower_set_election_timer();
                 
                 while (role == Role::Follower) {
-                        if (counter++ > DEAD_CNT) {
-                                role = Role::Dead;
-                                break;
-                        }
+                        // if (counter++ > DEAD_CNT) {
+                        //         role = Role::Dead;
+                        //         break;
+                        // }
                         int r = mysock::recv(&msg);
                         if (r < 0) {
                                 if (errno != EAGAIN)

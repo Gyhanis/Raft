@@ -101,10 +101,10 @@ namespace raft {
                 raft_candidate_request_vote();
                 candidate_set_election_timer();
                 while (role == Role::Candidate) {
-                        if (counter++ > DEAD_CNT) {
-                                role = Role::Dead;
-                                break;
-                        }
+                        // if (counter++ > DEAD_CNT) {
+                        //         role = Role::Dead;
+                        //         break;
+                        // }
                         mysock::MSG msg;
                         MSG_RAFT *msgr = (MSG_RAFT*) msg.data;
                         int r = mysock::recv(&msg);
