@@ -1,6 +1,6 @@
-#include "socket.h"
 #include "raft.h"
 #include <errno.h>
+#include <stdlib.h>
 
 namespace raft {
         int vote_cnt = 0;
@@ -11,51 +11,33 @@ namespace raft {
         }
 
         int raft_candidate_write_response(const MSG_RAFT& msg) {
-                // WARNING("received write request as follower\n");
-                MSG_RAFT msgr;
-                msgr.type = MSG_TYPE::ResponseWrite;
-                msgr.wresp.rid = msg.wrqst.rid;
-                msgr.wresp.leader = leader;
-                msgr.wresp.written = false;
-                return mysock::send(msg.wrqst.cid, &msgr, sizeof(msgr));
+                return raft_rpc_write_response(0);
         }
 
-        int raft_candidate_request_vote() {
-                MSG_RAFT msg;
-                msg.type = RequestVote;
-                msg.vrqst.id = node_id;
-                msg.vrqst.term = currentTerm;
-                msg.vrqst.lastLogIndex = list.last().index;
-                msg.vrqst.lastLogTerm = list.last().term;
-                return mysock::boardcast(&msg, sizeof(msg));
+        int raft_candidate_vote_request() {
+                return raft_rpc_vote_request();
         }
 
         int raft_candidate_vote_response(const MSG_RAFT& msg) {
-                MSG_RAFT msgr;
-                msgr.type = MSG_TYPE::RequestVoteRsp;
-                msgr.vresp.id = node_id;
-                if (msg.vrqst.term < currentTerm) {
-                        msgr.vresp.voteGranted = 0;
-                } else if (votedFor == node_id || msg.vrqst.term > currentTerm) {
+                int granted = 0;
+                if ((msg.vrqst.term == currentTerm && votedFor == node_id) 
+                || msg.vrqst.term > currentTerm) {
                         if (list.should_vote(msg.vrqst.lastLogIndex, msg.vrqst.lastLogTerm)) {
-                                msgr.vresp.voteGranted = 1;
+                                granted = 1;
                                 votedFor = msg.vrqst.id;
                                 vote_cnt--;
-                        } else {
-                                msgr.vresp.voteGranted = 0;
-                        }
+                        } 
                         if (msg.vrqst.term > currentTerm) {
                                 currentTerm = msg.vrqst.term;
                                 role = Role::Follower;
                         }
                 } 
-                msgr.vresp.term = currentTerm;
-                if (msgr.vresp.voteGranted) {
+                if (granted) {
                         INFO("Vote granted\n");
                 } else {
                         INFO("Vote rejected\n");
                 }
-                return mysock::send(msg.vrqst.id, &msgr, sizeof(msgr));
+                return raft_rpc_vote_response(granted);
         }
 
         int raft_candidate_handle_vote_response(const MSG_RAFT& msg) {
@@ -81,15 +63,10 @@ namespace raft {
                         role = Role::Follower;
                         leader = msg.append.id;
                         pending_msg = msg;
+                        return 0;
                 } else {
-                        MSG_RAFT msgr;
-                        msgr.type = AppendEntriesRsp;
-                        msgr.apresp.id = node_id;
-                        msgr.apresp.term = currentTerm;
-                        msgr.apresp.success = -1;
-                        mysock::send(msg.append.id, &msgr, sizeof(msgr));
+                        return raft_rpc_append_response(-1);
                 }
-                return 0;
         }
 
         int raft_being_candidate() {
@@ -98,40 +75,35 @@ namespace raft {
                 WARNING("Entering Candidate State (Term %d)\n", currentTerm);
                 votedFor = node_id;
                 vote_cnt = 1;
-                raft_candidate_request_vote();
+                raft_candidate_vote_request();
                 candidate_set_election_timer();
                 while (role == Role::Candidate) {
                         // if (counter++ > DEAD_CNT) {
                         //         role = Role::Dead;
                         //         break;
                         // }
-                        mysock::MSG msg;
-                        MSG_RAFT *msgr = (MSG_RAFT*) msg.data;
-                        int r = mysock::recv(&msg);
-                        if (r < 0) {
-                                if (errno != EAGAIN)
-                                        INFO("recv failed: %s\n", strerror(errno));
-                        } else {
+                        MSG_RAFT *msgr = raft_rpc_listen();
+                        if (msgr) {
                                 switch (msgr->type) {
                                 case MSG_TYPE::RequestWrite:
-                                        INFO("Request write received from %d\n", msg.from);
+                                        INFO("Request write received from %d\n", last_msg_from);
                                         raft_candidate_write_response(*msgr);
                                         break;
                                 case MSG_TYPE::RequestVote:
-                                        INFO("Request vote received from %d\n", msg.from);
+                                        INFO("Request vote received from %d\n", last_msg_from);
                                         raft_candidate_vote_response(*msgr);
                                         break;
                                 case MSG_TYPE::RequestVoteRsp:
-                                        INFO("Vote response received from %d\n", msg.from);
+                                        INFO("Vote response received from %d\n", last_msg_from);
                                         raft_candidate_handle_vote_response(*msgr);
                                         break;
                                 case MSG_TYPE::AppendEntries:
-                                        INFO("Append entry received from %d\n", msg.from);
+                                        INFO("Append entry received from %d\n", last_msg_from);
                                         raft_candidate_append_response(*msgr);
                                         break;
                                 case MSG_TYPE::RequestRestart:
                                         WARNING("Restart reqeust received\n");
-                                        raft_rpc_restart(*msgr);
+                                        raft_rpc_restart(msgr->restart.sec);
                                         break;
                                 case MSG_TYPE::NullMsg:
                                 case MSG_TYPE::AppendEntriesRsp:
@@ -146,7 +118,7 @@ namespace raft {
                                 WARNING("Election time out, next term %d\n", currentTerm);
                                 votedFor = node_id;
                                 vote_cnt = 1;
-                                raft_candidate_request_vote();
+                                raft_candidate_vote_request();
                                 candidate_set_election_timer();
                         }
                 } 

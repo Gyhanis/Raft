@@ -19,6 +19,7 @@ bool operator<(const timespec& ts1, const timespec& ts2);
 namespace raft {
 
         extern int counter;
+        extern const int &last_msg_from;
 
         enum Role {
                 Follower, Candidate, Leader, Dead, Restart
@@ -40,7 +41,13 @@ namespace raft {
 
         int raft_rpc_init(int id);
         int raft_rpc_shutdown();
-        int raft_rpc_restart(const MSG_RAFT& msg);
+        int raft_rpc_restart(int sec);
+        MSG_RAFT* raft_rpc_listen();
+        int raft_rpc_vote_request();
+        int raft_rpc_vote_response(int granted);
+        int raft_rpc_write_response(int written);
+        int raft_rpc_append_request(int to);
+        int raft_rpc_append_response(int success);
 
         int raft_init(int id);
         int raft_restart();

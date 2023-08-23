@@ -1,5 +1,4 @@
 #include "raft.h"
-#include "socket.h"
 #include <time.h>
 #include <errno.h>
 
@@ -13,32 +12,22 @@ namespace raft {
 
         int raft_follower_write_response(const MSG_RAFT& msg) {
                 // WARNING("received write request as follower\n");
-                MSG_RAFT msgr;
-                msgr.type = MSG_TYPE::ResponseWrite;
-                msgr.wresp.rid = msg.wrqst.rid;
-                msgr.wresp.leader = leader;
-                msgr.wresp.written = false;
-                return mysock::send(msg.wrqst.cid, &msgr, sizeof(msgr));
+                return raft_rpc_write_response(0);
         }
 
         int raft_follower_append_response(const MSG_RAFT& msg) {
-                MSG_RAFT msgr;
-                msgr.type = MSG_TYPE::AppendEntriesRsp;
-                msgr.apresp.id = node_id;
                 if (msg.append.term > currentTerm) {
                         INFO("Updating term (%d->%d) from append request\n", currentTerm, msg.append.term);
                         leader = msg.append.id;
                         currentTerm = msg.append.term;
                 } else if (msg.append.term < currentTerm) {
                         WARNING("Outdated term in append request\n");
-                        msgr.apresp.term = currentTerm;
-                        msgr.apresp.success = -1;
-                        return mysock::send(msg.append.id, &msgr, sizeof(msgr));
+                        return raft_rpc_append_response(-1);
                 } else if (leader == -1) {
                         leader = msg.append.id;
                 } 
 
-                msgr.apresp.term = currentTerm;
+                int success = 0;
                 if (msg.append.id != leader) {
                         WARNING("Illegal leader %d, should be %d\n", msg.append.id, leader);
                         // return without sending response
@@ -46,7 +35,7 @@ namespace raft {
                 } else if (!list.check_last_entry(msg.append.prevLogIndex, 
                                 msg.append.prevLogTerm)) {
                         WARNING("Last log mismatch!\n");
-                        msgr.apresp.success = -1;
+                        success = -1;
                 } else {
                         int i;
                         for (i = 0; i < msg.append.entryCnt; i++) {
@@ -54,18 +43,15 @@ namespace raft {
                                 if (r < 0) break;
                         }
                         list.follower_commit(msg.append.leaderCommit);
-                        msgr.apresp.success = msg.append.entries[i-1].index;
+                        success = msg.append.entries[i-1].index;
                         list.print();
                 }
-                return mysock::send(msg.append.id, &msgr, sizeof(msgr));
+                return raft_rpc_append_response(success);
         }
 
         int raft_follower_vote_response(const MSG_RAFT& msg) {
-                MSG_RAFT msgr;
-                msgr.type = RequestVoteRsp;
-                msgr.vresp.id = node_id;
+                int granted = 0;
                 if (currentTerm > msg.vrqst.term) {
-                        msgr.vresp.voteGranted = 0;
                         votedFor = -1;
                 } else if (votedFor == -1 || currentTerm < msg.vrqst.term) {
                         if (currentTerm < msg.vrqst.term) {
@@ -75,21 +61,16 @@ namespace raft {
                                 leader = -1;
                         }
                         if (list.should_vote(msg.vrqst.lastLogIndex, msg.vrqst.lastLogTerm)) {
-                                msgr.vresp.voteGranted = 1;
+                                granted = 1;
                                 votedFor = msg.vrqst.id;
-                        } else {
-                                msgr.vresp.voteGranted = 0;
                         }
-                } else {
-                        msgr.vresp.voteGranted = 0;
                 }
-                msgr.vresp.term = currentTerm;
-                if (msgr.vresp.voteGranted) {
-                        INFO("Vote granted (term %d)\n", msgr.vresp.term);
+                if (granted) {
+                        INFO("Vote granted (term %d)\n", msg.vrqst.term);
                 } else {
-                        INFO("Vote rejected (term %d)\n", msgr.vresp.term);
+                        INFO("Vote rejected (term %d)\n", msg.vrqst.term);
                 }
-                return mysock::send(msg.vrqst.id, &msgr, sizeof(msgr));
+                return raft_rpc_vote_response(granted);
         }
 
         int raft_being_follower() {
@@ -108,28 +89,25 @@ namespace raft {
                         //         role = Role::Dead;
                         //         break;
                         // }
-                        int r = mysock::recv(&msg);
-                        if (r < 0) {
-                                if (errno != EAGAIN)
-                                        INFO("recv failed: %s\n", strerror(errno));
-                        } else {
+                        MSG_RAFT *msgr = raft_rpc_listen();
+                        if (msgr) {
                                 switch (msgr->type) {
                                 case MSG_TYPE::AppendEntries:
-                                        INFO("Append request received from %d\n", msg.from);
+                                        INFO("Append request received from %d\n", last_msg_from);
                                         raft_follower_append_response(*msgr);
                                         follower_set_election_timer();
                                         break;
                                 case MSG_TYPE::RequestWrite:
-                                        INFO("Write request received from %d\n", msg.from);
+                                        INFO("Write request received from %d\n", last_msg_from);
                                         raft_follower_write_response(*msgr);
                                         break;
                                 case MSG_TYPE::RequestVote:
-                                        INFO("Request vote received from %d\n", msg.from);
+                                        INFO("Request vote received from %d\n", last_msg_from);
                                         raft_follower_vote_response(*msgr);
                                         break;
                                 case MSG_TYPE::RequestRestart:
                                         WARNING("Restart reqeust received\n");
-                                        raft_rpc_restart(*msgr);
+                                        raft_rpc_restart(msgr->restart.sec);
                                         break;
                                 case MSG_TYPE::NullMsg:
                                 case MSG_TYPE::RequestVoteRsp:

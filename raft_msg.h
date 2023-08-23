@@ -6,6 +6,8 @@ namespace raft {
                 NullMsg         = 0x000,
                 RequestWrite    = 0x001,
                 ResponseWrite,
+                RequestRestart,
+                ResponseRestart,
 
                 RequestVote     = 0x101, 
                 RequestVoteRsp,
@@ -27,6 +29,16 @@ namespace raft {
                                 int written;
                                 int leader;
                         } wresp;
+                        struct {
+                                int cid;
+                                int rid;
+                                int sec;
+                        } restart;
+                        struct {
+                                int rid;
+                                int success;
+                        } restart_resp;
+                        
                         struct {
                                 int id;
                                 int term;

@@ -1,3 +1,5 @@
+#pragma once 
+
 #include "raft_entry.h"
 #include "raft_msg.h"
 
@@ -22,12 +24,18 @@ namespace raft {
                         return list[index%ENTRY_LIST_LEN];
                 }
 
+                inline int get_commite_index() {
+                        return commitIndex;
+                }
+
                 int init();
                 int reset_preceeded();
+                int rollback(int id);
                 bool check_last_entry(int _index, int term);
                 bool should_vote(int _index, int term);
                 int append_entry(int key, int value);
-                int fill_append_entries(MSG_RAFT& msgr, int to);
+                // int fill_append_entries(MSG_RAFT& msgr, int to);
+                Entry* get_entries_for(int to, int* len);
                 int update_entry(const Entry& e);
                 int leader_commit(int id, int cindex);
                 int follower_commit(int cindex);

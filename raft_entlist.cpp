@@ -1,4 +1,5 @@
 #include "raft.h"
+#include <algorithm>
 
 namespace raft {
         inline bool EntryList::is_full() {
@@ -15,6 +16,15 @@ namespace raft {
         int EntryList::reset_preceeded() {
                 for (int i = 0; i < NODE_CNT; i++) {
                         proceeded[i] = commitIndex;
+                }
+                return 0;
+        }
+
+        int EntryList::rollback(int id) {
+                proceeded[id]--;
+                while (proceeded[id] > lastApplied && 
+                        list[proceeded[id]].term == list[proceeded[id]+1].term) {
+                        proceeded[id]--;
                 }
                 return 0;
         }
@@ -48,17 +58,22 @@ namespace raft {
                 return 0;
         }
 
-        int EntryList::fill_append_entries(MSG_RAFT& msgr, int to) {
-                msgr.append.prevLogIndex = proceeded[to];
-                msgr.append.prevLogTerm = index(proceeded[to]).term;
-                msgr.append.leaderCommit = commitIndex;
-                msgr.append.entryCnt = lastIndex - proceeded[to];
-                if (msgr.append.entryCnt > 4) 
-                        msgr.append.entryCnt = 4;
-                for (int i = 0; i < msgr.append.entryCnt; i++) {
-                        msgr.append.entries[i] = index(proceeded[to]+1+i);
-                }
-                return 0;
+        // int EntryList::fill_append_entries(MSG_RAFT& msgr, int to) {
+        //         msgr.append.prevLogIndex = proceeded[to];
+        //         msgr.append.prevLogTerm = index(proceeded[to]).term;
+        //         msgr.append.leaderCommit = commitIndex;
+        //         msgr.append.entryCnt = lastIndex - proceeded[to];
+        //         if (msgr.append.entryCnt > 4) 
+        //                 msgr.append.entryCnt = 4;
+        //         for (int i = 0; i < msgr.append.entryCnt; i++) {
+        //                 msgr.append.entries[i] = index(proceeded[to]+1+i);
+        //         }
+        //         return 0;
+        // }
+
+        Entry* EntryList::get_entries_for(int to, int* len) {
+                *len = std::min(5, lastIndex - proceeded[to]+1);
+                return &index(proceeded[to]);
         }
 
         int EntryList::update_entry(const Entry& e) {
