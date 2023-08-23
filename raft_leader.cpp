@@ -1,4 +1,5 @@
 #include "raft.h"
+#include <unistd.h>
 #include <time.h>
 #include <errno.h>
 

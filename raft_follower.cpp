@@ -1,4 +1,5 @@
 #include "raft.h"
+#include <stdlib.h>
 #include <time.h>
 #include <errno.h>
 
@@ -76,8 +77,6 @@ namespace raft {
         int raft_being_follower() {
                 WARNING("Entering Follower State\n");
                 int cnt = 0; 
-                mysock::MSG msg;
-                MSG_RAFT *msgr = (MSG_RAFT*) msg.data;
                 if (pending_msg.type == MSG_TYPE::AppendEntries) {
                         raft_follower_append_response(pending_msg);
                         pending_msg.type = NullMsg;
